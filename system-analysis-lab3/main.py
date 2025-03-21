@@ -12,50 +12,174 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QFileDialog,
     QMessageBox,
+    QGridLayout,
+    QFrame,
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtGui import QFont, QPalette, QColor, QPixmap, QIcon
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 
 
 class GraphDecompositionApp(QMainWindow):
-    """Главное окно приложения для топологической декомпозиции графа."""
+    """Главное окно приложения для топологической декомпозиции графа с современным UI."""
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Топологическая декомпозиция графа")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 900, 700)
+
+        self.set_dark_theme()
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-        layout = QVBoxLayout(main_widget)
+        main_layout = QVBoxLayout(main_widget)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
 
-        self.input_label = QLabel(
-            "Введите матрицу смежности (каждая строка на новой строке, элементы через пробел):"
+        title_label = QLabel("Системный анализ • Лабораторная работа №3")
+        title_label.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        title_label.setStyleSheet("color: #ffffff; margin-bottom: 10px;")
+        main_layout.addWidget(title_label, alignment=Qt.AlignCenter)
+
+        control_frame = QFrame()
+        control_frame.setStyleSheet(
+            """
+            QFrame {
+                background-color: #2a2a2a;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """
         )
-        layout.addWidget(self.input_label)
-        self.matrix_input = QTextEdit()
-        self.matrix_input.setPlaceholderText("Пример:\n0 1 0\n0 0 1\n0 0 0")
-        layout.addWidget(self.matrix_input)
+        control_layout = QGridLayout(control_frame)
+        control_layout.setSpacing(10)
 
-        self.load_button = QPushButton("Загрузить из файла")
+        self.input_label = QLabel("Введите матрицу смежности:")
+        self.input_label.setFont(QFont("Segoe UI", 12))
+        self.input_label.setStyleSheet("color: #d3d3d3;")
+        control_layout.addWidget(self.input_label, 0, 0, 1, 2)
+
+        self.matrix_input = QTextEdit()
+        self.matrix_input.setFont(QFont("Consolas", 11))
+        self.matrix_input.setPlaceholderText("Пример:\n0 1 0\n0 0 1\n0 0 0")
+        self.matrix_input.setStyleSheet(
+            """
+            QTextEdit {
+                background-color: #333333;
+                color: #ffffff;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 10px;
+            }
+        """
+        )
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        shadow.setOffset(0, 2)
+        self.matrix_input.setGraphicsEffect(shadow)
+        control_layout.addWidget(self.matrix_input, 1, 0, 1, 2)
+
+        self.load_button = QPushButton("📂 Загрузить из файла")
+        self.load_button.setFont(QFont("Segoe UI", 11))
+        self.load_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #4a90e2;
+                color: white;
+                border-radius: 5px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #357abd;
+            }
+            QPushButton:pressed {
+                background-color: #2a5d91;
+            }
+        """
+        )
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setColor(QColor(0, 0, 0, 100))
+        shadow.setOffset(0, 2)
+        self.load_button.setGraphicsEffect(shadow)
         self.load_button.clicked.connect(self.load_from_file)
-        layout.addWidget(self.load_button)
+        control_layout.addWidget(self.load_button, 2, 0, 1, 1)
+
+        self.analyze_button = QPushButton("🔍 Анализировать")
+        self.analyze_button.setFont(QFont("Segoe UI", 11))
+        self.analyze_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border-radius: 5px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            QPushButton:pressed {
+                background-color: #1c6d30;
+            }
+        """
+        )
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setColor(QColor(0, 0, 0, 100))
+        shadow.setOffset(0, 2)
+        self.analyze_button.setGraphicsEffect(shadow)
+        self.analyze_button.clicked.connect(self.analyze_graph)
+        control_layout.addWidget(self.analyze_button, 2, 1, 1, 1)
 
         self.instruction_label = QLabel(
-            "Нажмите 'Анализировать', чтобы обработать граф.\nГраф должен быть ациклическим (дуги направлены в одну сторону)."
+            "Граф должен быть ациклическим (дуги направлены в одну сторону)."
         )
-        layout.addWidget(self.instruction_label)
+        self.instruction_label.setFont(QFont("Segoe UI", 10, QFont.StyleItalic))
+        self.instruction_label.setStyleSheet("color: #aaaaaa; margin-top: 5px;")
+        control_layout.addWidget(self.instruction_label, 3, 0, 1, 2)
+
+        main_layout.addWidget(control_frame)
 
         self.result_text = QTextEdit()
+        self.result_text.setFont(QFont("Consolas", 11))
         self.result_text.setReadOnly(True)
-        layout.addWidget(self.result_text)
-
-        self.analyze_button = QPushButton("Анализировать")
-        self.analyze_button.clicked.connect(self.analyze_graph)
-        layout.addWidget(self.analyze_button)
+        self.result_text.setStyleSheet(
+            """
+            QTextEdit {
+                background-color: #333333;
+                color: #ffffff;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 10px;
+            }
+        """
+        )
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        shadow.setOffset(0, 2)
+        self.result_text.setGraphicsEffect(shadow)
+        main_layout.addWidget(self.result_text)
 
         self.adjacency = None
         self.matrix = None
+
+    def set_dark_theme(self):
+        """Устанавливает темную тему для приложения."""
+        palette = QPalette()
+        palette.setColor(QPalette.Window, QColor(34, 34, 34))
+        palette.setColor(QPalette.WindowText, Qt.white)
+        palette.setColor(QPalette.Base, QColor(51, 51, 51))
+        palette.setColor(QPalette.AlternateBase, QColor(34, 34, 34))
+        palette.setColor(QPalette.Text, Qt.white)
+        palette.setColor(QPalette.Button, QColor(74, 144, 226))
+        palette.setColor(QPalette.ButtonText, Qt.white)
+        palette.setColor(QPalette.BrightText, Qt.red)
+        palette.setColor(QPalette.Highlight, QColor(40, 167, 69))
+        palette.setColor(QPalette.HighlightedText, Qt.white)
+        self.setPalette(palette)
+        self.setStyleSheet("background-color: #222222;")
 
     def load_from_file(self):
         """Загружает матрицу смежности из файла."""
@@ -242,10 +366,7 @@ class GraphDecompositionApp(QMainWindow):
                 if i != j:
                     for u in subsystems[i]:
                         for v in subsystems[j]:
-                            if (
-                                u,
-                                v,
-                            ) in G_original.edges:
+                            if (u, v) in G_original.edges:
                                 G_subsystems.add_edge(i + 1, j + 1)
                                 subsystem_edges.append((i + 1, j + 1))
                                 break
@@ -323,16 +444,24 @@ class GraphDecompositionApp(QMainWindow):
         """Отображает графики в отдельном окне."""
         graph_window = QWidget()
         graph_window.setWindowTitle("Графики")
+        graph_window.setStyleSheet("background-color: #222222;")
         graph_layout = QHBoxLayout(graph_window)
+        graph_layout.setContentsMargins(10, 10, 10, 10)
 
         original_label = QLabel(graph_window)
         original_pixmap = QPixmap("original_graph.png")
         original_label.setPixmap(original_pixmap.scaled(400, 300, Qt.KeepAspectRatio))
+        original_label.setStyleSheet(
+            "background-color: #333333; border-radius: 5px; padding: 5px;"
+        )
         graph_layout.addWidget(original_label)
 
         subsystem_label = QLabel(graph_window)
         subsystem_pixmap = QPixmap("subsystem_graph.png")
         subsystem_label.setPixmap(subsystem_pixmap.scaled(400, 300, Qt.KeepAspectRatio))
+        subsystem_label.setStyleSheet(
+            "background-color: #333333; border-radius: 5px; padding: 5px;"
+        )
         graph_layout.addWidget(subsystem_label)
 
         graph_window.setGeometry(200, 200, 800, 300)
